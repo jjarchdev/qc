@@ -7,7 +7,22 @@ export function isScenarioRecord(s) {
   }
   if (!Array.isArray(s.tags)) return false;
   if (!s.tags.every((t) => typeof t === "string")) return false;
+  if (s.image_url != null && typeof s.image_url !== "string") return false;
   return true;
+}
+
+function sanitizeImageUrl(value) {
+  if (value == null) return "";
+  const url = String(value).trim();
+  if (!url) return "";
+  if (url.startsWith("/uploads/")) return url;
+  try {
+    const u = new URL(url);
+    if (u.protocol === "http:" || u.protocol === "https:") return u.toString();
+  } catch {
+    return "";
+  }
+  return "";
 }
 
 export function normalizeScenario(s) {
@@ -19,6 +34,7 @@ export function normalizeScenario(s) {
     scenario: s.scenario,
     solution: s.solution,
     tags: s.tags.map((t) => String(t)),
+    image_url: sanitizeImageUrl(s.image_url),
   };
   if (typeof s.is_published === "boolean") {
     out.is_published = s.is_published;
@@ -33,3 +49,5 @@ export function normalizeScenarioList(list) {
   const normalized = list.map(normalizeScenario).filter(Boolean);
   return normalized.length ? normalized : null;
 }
+
+export { sanitizeImageUrl };

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useBlocker, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { apiFetchWithAuth, logoutAdmin } from "./api.js";
+import { apiFetchWithAuth, logoutAdmin, uploadImageFile } from "./api.js";
 import { useAppData } from "./AppData.jsx";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
 import { localePath } from "./utils.js";
@@ -209,6 +209,7 @@ function ScenarioForm({ initial, categories, onSave, onCancel }) {
       scenario: initial?.scenario || "",
       solution: initial?.solution || "",
       tags: initial?.tags?.join(", ") || "",
+      image_url: initial?.image_url || "",
       is_published: initial?.is_published !== false,
     }),
     [initial, defaultCategory]
@@ -216,6 +217,7 @@ function ScenarioForm({ initial, categories, onSave, onCancel }) {
   const [form, setForm] = useState(baseline);
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     setForm(baseline);
@@ -229,6 +231,7 @@ function ScenarioForm({ initial, categories, onSave, onCancel }) {
       form.scenario !== baseline.scenario ||
       form.solution !== baseline.solution ||
       form.tags !== baseline.tags ||
+      form.image_url !== baseline.image_url ||
       form.is_published !== baseline.is_published,
     [form, baseline]
   );
@@ -350,29 +353,89 @@ function ScenarioForm({ initial, categories, onSave, onCancel }) {
         style={styles.input}
         placeholder={t("scenarioForm.tagsPlaceholder")}
         value={form.tags}
-        disabled={busy}
+        disabled={busy || uploading}
         onChange={(e) => patch("tags", e.target.value)}
       />
+
+      <label style={styles.label}>{t("scenarioForm.image")}</label>
+      <input
+        style={styles.input}
+        placeholder={t("scenarioForm.imageUrlPlaceholder")}
+        value={form.image_url}
+        disabled={busy || uploading}
+        onChange={(e) => patch("image_url", e.target.value)}
+      />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.75rem", alignItems: "center" }}>
+        <label style={{ ...styles.ghostBtn, cursor: busy || uploading ? "default" : "pointer" }}>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            hidden
+            disabled={busy || uploading}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setUploading(true);
+              setFormError("");
+              try {
+                const url = await uploadImageFile(file);
+                patch("image_url", url);
+              } catch (err) {
+                setFormError(err?.message || t("scenarioForm.uploadFailed"));
+              } finally {
+                setUploading(false);
+              }
+            }}
+          />
+          {uploading ? t("scenarioForm.uploading") : t("scenarioForm.uploadImage")}
+        </label>
+        {form.image_url ? (
+          <button
+            type="button"
+            style={styles.cancelBtn}
+            disabled={busy || uploading}
+            onClick={() => patch("image_url", "")}
+          >
+            {t("scenarioForm.removeImage")}
+          </button>
+        ) : null}
+      </div>
+      {form.image_url ? (
+        <img
+          src={form.image_url}
+          alt=""
+          style={{
+            display: "block",
+            marginTop: "0.75rem",
+            maxWidth: "100%",
+            maxHeight: 220,
+            borderRadius: 10,
+            border: "1px solid #1a2a3a",
+            objectFit: "cover",
+          }}
+        />
+      ) : null}
 
       <label style={styles.checkLabel}>
         <input
           type="checkbox"
           checked={form.is_published}
-          disabled={busy}
+          disabled={busy || uploading}
           onChange={(e) => patch("is_published", e.target.checked)}
         />
         {t("scenarioForm.published")}
       </label>
 
       <div style={styles.formActions}>
-        <button type="button" style={styles.primaryBtn} onClick={handleSave} disabled={busy}>
+        <button type="button" style={styles.primaryBtn} onClick={handleSave} disabled={busy || uploading}>
           {busy
             ? t("scenarioForm.saving")
             : initial
               ? t("scenarioForm.saveChanges")
               : t("scenarioForm.addScenario")}
         </button>
-        <button type="button" style={styles.ghostBtn} onClick={requestCancel} disabled={busy}>
+        <button type="button" style={styles.ghostBtn} onClick={requestCancel} disabled={busy || uploading}>
           {t("scenarioForm.cancel")}
         </button>
       </div>
@@ -460,6 +523,7 @@ export default function AdminView() {
       solution: data.solution,
       tags,
       is_published: data.is_published !== false,
+      image_url: data.image_url || "",
     };
     try {
       const res = editingScenario

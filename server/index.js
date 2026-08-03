@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import jwt from "jsonwebtoken";
 import express from "express";
+import multer from "multer";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -35,8 +36,9 @@ const {
   resolveCategoryLabelOnDisk,
   withPublishedDefault,
 } = await import("./fileStore.js");
-const { normalizeScenario } = await import("../shared/scenarioSchema.mjs");
+const { normalizeScenario, sanitizeImageUrl } = await import("../shared/scenarioSchema.mjs");
 const { normalizeCategory } = await import("../shared/categoryMap.mjs");
+const { saveUploadedImage, UPLOADS_DIR } = await import("./upload.js");
 
 const isProd = process.env.NODE_ENV === "production";
 const adminPassword = (process.env.ADMIN_PASSWORD || "").trim() || (!isProd ? "admin123" : "");
@@ -162,6 +164,7 @@ function parseScenarioBody(body) {
     scenario: body?.scenario,
     solution: body?.solution,
     tags,
+    image_url: sanitizeImageUrl(body?.image_url),
     is_published: body?.is_published !== false && body?.is_published !== "false",
   };
   const normalized = normalizeScenario({
@@ -210,6 +213,31 @@ function checkLoginRateLimit(ip) {
 const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+});
+
+app.use(express.json({ limit: "5mb" }));
+app.use("/uploads", express.static(UPLOADS_DIR, { fallthrough: true, maxAge: isProd ? "1d" : 0 }));
+
+app.post("/api/uploads/image", requireAuth, (req, res) => {
+  upload.single("file")(req, res, async (err) => {
+    if (err) {
+      const msg = err.code === "LIMIT_FILE_SIZE" ? "Image must be 5MB or smaller" : err.message || "Upload failed";
+      return res.status(400).json({ error: msg });
+    }
+    try {
+      const url = await saveUploadedImage(req.file);
+      res.status(201).json({ url });
+    } catch (e) {
+      console.error(e);
+      res.status(400).json({ error: e.message || "Upload failed" });
+    }
+  });
+});
+
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -220,7 +248,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use(express.json({ limit: "5mb" }));
 
 app.get("/api/health", (_req, res) => {
   res.json({

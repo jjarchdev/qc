@@ -18,6 +18,8 @@ create table if not exists public.scenarios (
 
   tags text[] not null default '{}'::text[],
 
+  image_url text,
+
   sort_order integer not null default 0,
   is_published boolean not null default true,
 
@@ -79,7 +81,8 @@ select
   s.solution,
   s.tags,
   s.sort_order,
-  s.updated_at
+  s.updated_at,
+  s.image_url
 from public.scenarios s
 join public.categories c on c.slug = s.category_slug
 where s.is_published = true
@@ -95,7 +98,8 @@ select
   s.tags,
   s.sort_order,
   s.is_published,
-  s.updated_at
+  s.updated_at,
+  s.image_url
 from public.scenarios s
 join public.categories c on c.slug = s.category_slug
 order by s.sort_order, s.id;

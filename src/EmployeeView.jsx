@@ -48,6 +48,7 @@ function ScenarioCard({ scenario, onSelect, openLabel }) {
   const color = accentForCategory(scenario.category);
   const text = scenario.scenario;
   const snippet = text.length > 100 ? `${text.slice(0, 100)}…` : text;
+  const imageUrl = scenario.image_url || "";
 
   return (
     <div
@@ -63,6 +64,19 @@ function ScenarioCard({ scenario, onSelect, openLabel }) {
       }}
     >
       <div style={{ ...styles.cardAccent, background: color }} />
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt=""
+          style={{
+            width: "calc(100% + 2.5rem)",
+            margin: "-1.25rem -1.25rem 0.85rem",
+            maxHeight: 140,
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      ) : null}
       <div style={styles.cardCat}>{scenario.category}</div>
       <h3 style={styles.cardTitle}>{scenario.title}</h3>
       <p style={styles.cardSnippet}>{snippet}</p>
@@ -122,6 +136,21 @@ function ScenarioDetail({ scenario, onBack, onNotify }) {
       <h2 id="scenario-detail-title" style={styles.detailTitle}>
         {scenario.title}
       </h2>
+      {scenario.image_url ? (
+        <img
+          src={scenario.image_url}
+          alt=""
+          style={{
+            width: "100%",
+            maxHeight: 360,
+            objectFit: "cover",
+            borderRadius: 12,
+            border: "1px solid #1a2a3a",
+            marginBottom: "1.25rem",
+            display: "block",
+          }}
+        />
+      ) : null}
 
       <div className="no-print" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1.25rem" }}>
         <button type="button" style={styles.ghostBtn} onClick={copyProcedure}>

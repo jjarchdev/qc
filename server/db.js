@@ -47,6 +47,7 @@ export function rowToScenario(row) {
     scenario: row.scenario,
     solution: row.solution,
     tags: Array.isArray(row.tags) ? row.tags : [],
+    image_url: typeof row.image_url === "string" ? row.image_url : "",
     is_published: typeof row.is_published === "boolean" ? row.is_published : undefined,
   });
 }
@@ -201,6 +202,7 @@ export async function insertScenario(payload) {
       situation: payload.scenario.trim(),
       solution: payload.solution.trim(),
       tags: payload.tags ?? [],
+      image_url: payload.image_url || null,
       sort_order: payload.sort_order ?? 0,
       is_published: payload.is_published !== false,
     })
@@ -219,6 +221,7 @@ export async function updateScenario(id, payload) {
     situation: payload.scenario.trim(),
     solution: payload.solution.trim(),
     tags: payload.tags ?? [],
+    image_url: payload.image_url || null,
     sort_order: payload.sort_order ?? 0,
   };
   if (typeof payload.is_published === "boolean") {

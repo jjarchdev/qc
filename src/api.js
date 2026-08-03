@@ -33,3 +33,20 @@ export async function fetchAdminSession() {
 export async function logoutAdmin() {
   await apiFetch("/api/auth/logout", { method: "POST" });
 }
+
+/** Upload an image file; returns public URL string. */
+export async function uploadImageFile(file) {
+  const body = new FormData();
+  body.append("file", file);
+  const res = await fetch(apiUrl("/api/uploads/image"), {
+    method: "POST",
+    credentials: "include",
+    body,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || "Upload failed");
+  }
+  if (!data?.url) throw new Error("Bad upload response");
+  return data.url;
+}
