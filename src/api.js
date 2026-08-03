@@ -38,14 +38,31 @@ export async function logoutAdmin() {
 export async function uploadImageFile(file) {
   const body = new FormData();
   body.append("file", file);
-  const res = await fetch(apiUrl("/api/uploads/image"), {
-    method: "POST",
-    credentials: "include",
-    body,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000);
+  let res;
+  try {
+    res = await fetch(apiUrl("/api/uploads/image"), {
+      method: "POST",
+      credentials: "include",
+      body,
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (e?.name === "AbortError") {
+      throw new Error("Upload timed out. Try a smaller image or check Storage bucket setup.");
+    }
+    throw new Error("Upload failed (network). Is the API running?");
+  } finally {
+    clearTimeout(timer);
+  }
+
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    throw new Error("Sign in again, then retry the upload.");
+  }
   if (!res.ok) {
-    throw new Error(data?.error || "Upload failed");
+    throw new Error(data?.error || `Upload failed (${res.status})`);
   }
   if (!data?.url) throw new Error("Bad upload response");
   return data.url;

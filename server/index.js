@@ -225,15 +225,16 @@ app.use("/uploads", express.static(UPLOADS_DIR, { fallthrough: true, maxAge: isP
 app.post("/api/uploads/image", requireAuth, (req, res) => {
   upload.single("file")(req, res, async (err) => {
     if (err) {
-      const msg = err.code === "LIMIT_FILE_SIZE" ? "Image must be 5MB or smaller" : err.message || "Upload failed";
+      const msg =
+        err.code === "LIMIT_FILE_SIZE" ? "Image must be 5MB or smaller" : err.message || "Upload failed";
       return res.status(400).json({ error: msg });
     }
     try {
       const url = await saveUploadedImage(req.file);
-      res.status(201).json({ url });
+      return res.status(201).json({ url });
     } catch (e) {
-      console.error(e);
-      res.status(400).json({ error: e.message || "Upload failed" });
+      console.error("[upload]", e);
+      return res.status(400).json({ error: e.message || "Upload failed" });
     }
   });
 });
