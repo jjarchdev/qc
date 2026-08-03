@@ -835,6 +835,11 @@ function AdminView({
     if (!narrow) setNavOpen(false);
   }, [narrow]);
 
+  useEffect(() => {
+    const main = document.getElementById("admin-main");
+    if (main) main.scrollTop = 0;
+  }, [showAddForm, showCategoryManager, editingScenario, listLoading]);
+
   return (
     <div style={styles.appWrap}>
       <nav
@@ -999,6 +1004,12 @@ function CategoryManager({ categories, onSave, onDelete, onBack }) {
   const [editingSlug, setEditingSlug] = useState(null);
   const [formError, setFormError] = useState("");
   const [deleteSlug, setDeleteSlug] = useState(null);
+  const formRef = useRef(null);
+
+  const editingLabel = useMemo(() => {
+    if (!editingSlug) return "";
+    return categories.find((c) => c.slug === editingSlug)?.label || label;
+  }, [categories, editingSlug, label]);
 
   const resetForm = () => {
     setLabel("");
@@ -1013,6 +1024,9 @@ function CategoryManager({ categories, onSave, onDelete, onBack }) {
     setSortOrder(String(cat.sort_order));
     setFormError("");
     setDeleteSlug(null);
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const handleSave = async () => {
@@ -1039,93 +1053,100 @@ function CategoryManager({ categories, onSave, onDelete, onBack }) {
         category.
       </p>
 
-      {categories.length === 0 ? (
-        <div style={{ ...styles.empty, marginBottom: "1.5rem" }}>No categories yet. Add the first one below.</div>
-      ) : null}
+      <div ref={formRef}>
+        <h3 style={{ ...styles.formTitle, fontSize: "1.1rem", marginTop: 0, marginBottom: "0.5rem" }}>
+          {editingSlug ? "Edit Category" : "Add Category"}
+        </h3>
+        {editingSlug ? (
+          <p style={{ color: "#4fa3ff", marginTop: 0, marginBottom: "1rem", fontSize: "0.9rem" }}>
+            Editing &quot;{editingLabel}&quot;
+          </p>
+        ) : null}
+        {formError ? (
+          <div style={styles.formInlineError} role="alert">
+            {formError}
+          </div>
+        ) : null}
+        <label style={styles.label}>Label</label>
+        <input
+          style={styles.input}
+          placeholder="e.g. Training Gap"
+          value={label}
+          onChange={(e) => {
+            setFormError("");
+            setLabel(e.target.value);
+          }}
+        />
+        <label style={styles.label}>Sort order</label>
+        <input
+          style={styles.input}
+          type="number"
+          placeholder="0"
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+        />
+        <div style={styles.formActions}>
+          <button type="button" style={styles.primaryBtn} onClick={handleSave}>
+            {editingSlug ? "Save Category" : "Add Category"}
+          </button>
+          {editingSlug ? (
+            <button type="button" style={styles.ghostBtn} onClick={resetForm}>
+              Cancel Edit
+            </button>
+          ) : null}
+        </div>
+      </div>
 
-      <div style={styles.adminTable}>
-        {categories.length > 0 ? (
+      {categories.length === 0 ? (
+        <div style={{ ...styles.empty, marginTop: "1.5rem", marginBottom: 0 }}>
+          No categories yet. Add the first one above.
+        </div>
+      ) : (
+        <div style={{ ...styles.adminTable, marginTop: "2rem" }}>
           <div style={styles.tableHead}>
             <span style={{ flex: 2 }}>Label</span>
             <span style={{ flex: 1 }}>Slug</span>
             <span style={{ width: 70 }}>Order</span>
             <span style={{ flex: 1, textAlign: "right" }}>Actions</span>
           </div>
-        ) : null}
-        {categories.map((cat) => (
-          <div key={cat.slug} style={styles.tableRow}>
-            {deleteSlug === cat.slug ? (
-              <div style={styles.deleteConfirm}>
-                <span>Delete &quot;{cat.label}&quot;?</span>
-                <button
-                  type="button"
-                  style={styles.dangerBtn}
-                  onClick={async () => {
-                    const ok = await onDelete(cat.slug);
-                    if (ok) setDeleteSlug(null);
-                  }}
-                >
-                  Yes, Delete
-                </button>
-                <button type="button" style={styles.cancelBtn} onClick={() => setDeleteSlug(null)}>
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <>
-                <span style={{ flex: 2, fontWeight: 600 }}>{cat.label}</span>
-                <span style={{ flex: 1, color: "#8899aa", fontSize: "0.85rem" }}>{cat.slug}</span>
-                <span style={{ width: 70, color: "#8899aa" }}>{cat.sort_order}</span>
-                <div style={{ flex: 1, display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-                  <button type="button" style={styles.editBtn} onClick={() => startEdit(cat)}>
-                    Edit
+          {categories.map((cat) => (
+            <div key={cat.slug} style={styles.tableRow}>
+              {deleteSlug === cat.slug ? (
+                <div style={styles.deleteConfirm}>
+                  <span>Delete &quot;{cat.label}&quot;?</span>
+                  <button
+                    type="button"
+                    style={styles.dangerBtn}
+                    onClick={async () => {
+                      const ok = await onDelete(cat.slug);
+                      if (ok) setDeleteSlug(null);
+                    }}
+                  >
+                    Yes, Delete
                   </button>
-                  <button type="button" style={styles.dangerBtn} onClick={() => setDeleteSlug(cat.slug)}>
-                    Delete
+                  <button type="button" style={styles.cancelBtn} onClick={() => setDeleteSlug(null)}>
+                    Cancel
                   </button>
                 </div>
-              </>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <h3 style={{ ...styles.formTitle, fontSize: "1.1rem", marginTop: "2rem" }}>
-        {editingSlug ? "Edit Category" : "Add Category"}
-      </h3>
-      {formError ? (
-        <div style={styles.formInlineError} role="alert">
-          {formError}
+              ) : (
+                <>
+                  <span style={{ flex: 2, fontWeight: 600 }}>{cat.label}</span>
+                  <span style={{ flex: 1, color: "#8899aa", fontSize: "0.85rem" }}>{cat.slug}</span>
+                  <span style={{ width: 70, color: "#8899aa" }}>{cat.sort_order}</span>
+                  <div style={{ flex: 1, display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+                    <button type="button" style={styles.editBtn} onClick={() => startEdit(cat)}>
+                      Edit
+                    </button>
+                    <button type="button" style={styles.dangerBtn} onClick={() => setDeleteSlug(cat.slug)}>
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
         </div>
-      ) : null}
-      <label style={styles.label}>Label</label>
-      <input
-        style={styles.input}
-        placeholder="e.g. Training Gap"
-        value={label}
-        onChange={(e) => {
-          setFormError("");
-          setLabel(e.target.value);
-        }}
-      />
-      <label style={styles.label}>Sort order</label>
-      <input
-        style={styles.input}
-        type="number"
-        placeholder="0"
-        value={sortOrder}
-        onChange={(e) => setSortOrder(e.target.value)}
-      />
-      <div style={styles.formActions}>
-        <button type="button" style={styles.primaryBtn} onClick={handleSave}>
-          {editingSlug ? "Save Category" : "Add Category"}
-        </button>
-        {editingSlug ? (
-          <button type="button" style={styles.ghostBtn} onClick={resetForm}>
-            Cancel Edit
-          </button>
-        ) : null}
-      </div>
+      )}
     </div>
   );
 }
