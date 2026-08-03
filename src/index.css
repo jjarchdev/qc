@@ -8,3 +8,37 @@ body {
   margin: 0;
   background: #0d1520;
 }
+
+@media print {
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-root,
+  .print-root * {
+    visibility: visible;
+  }
+
+  .print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #fff !important;
+    color: #111 !important;
+    padding: 1rem;
+  }
+
+  .print-root h1,
+  .print-root h2,
+  .print-root p,
+  .print-root li,
+  .print-root span {
+    color: #111 !important;
+  }
+}

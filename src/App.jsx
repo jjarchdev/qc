@@ -58,6 +58,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomeScreen /> },
       { path: "employee", element: <EmployeeView /> },
+      { path: "employee/:scenarioId", element: <EmployeeView /> },
       { path: "admin/login", element: <AdminLogin /> },
       { path: "admin", element: <AdminView /> },
     ],
