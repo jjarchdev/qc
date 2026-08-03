@@ -16,9 +16,12 @@
     "@supabase/supabase-js": "^2.49.1",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "i18next": "^26.3.6",
     "jsonwebtoken": "^9.0.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-i18next": "^17.0.11",
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
